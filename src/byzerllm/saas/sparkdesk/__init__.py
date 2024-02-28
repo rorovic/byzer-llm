@@ -75,9 +75,11 @@ class CustomSaasAPI:
         self.appid: str = infer_params["saas.appid"]
         self.api_key: str = infer_params["saas.api_key"]
         self.api_secret: str = infer_params["saas.api_secret"]
-        self.gpt_url: str = infer_params.get("saas.gpt_url","wss://spark-api.xf-yun.com/v1.3/chat")
+        self.gpt_url: str = infer_params.get("saas.gpt_url","wss://spark-api.xf-yun.com/v3.1/chat")
         self.domain: str = infer_params.get("saas.domain","generalv3")
         self.config = SparkDeskAPIParams(self.appid, self.api_key, self.api_secret, self.gpt_url, self.domain)
+        self.timeout = int(infer_params.get("saas.timeout",30))
+        self.debug = infer_params.get("saas.debug",False)
 
     @staticmethod
     def on_error(ws, error):
@@ -157,7 +159,7 @@ class CustomSaasAPI:
                     temperature:float=0.9):
 
         q = his + [{"role": "user", "content": ins}]
-        websocket.enableTrace(False)
+        websocket.enableTrace(self.debug)
         wsUrl = self.config.create_url()
         ws = websocket.WebSocketApp(wsUrl,
                                     on_message=CustomSaasAPI.on_message,
@@ -174,10 +176,9 @@ class CustomSaasAPI:
 
         result = []
 
-        t  = reponse_queue.get(timeout=30)
+        t  = reponse_queue.get(timeout=self.timeout)
         while t is not None:
             result.append(t)
-            t  = reponse_queue.get(timeout=30)
-
+            t  = reponse_queue.get(timeout=self.timeout)
 
         return [("".join(result),"")]
